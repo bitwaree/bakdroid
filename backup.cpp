@@ -62,7 +62,7 @@ int __attribute__((visibility("hidden"))) SelfKiller();
 
 int initBackup(char *APP_ID, char *modulePath)
 {
-	printf("[...] Initializing backup...\n");
+	printf("[...] Initializing bakdroid...\n");
 
 	//SetupPaths
 	class DroidBackup backup(APP_ID, modulePath);
@@ -144,10 +144,11 @@ int initBackup(char *APP_ID, char *modulePath)
 	free(command_run);
 	free(backupFile);
 	
-	if(tarExitValue == 0)
-	{
+//	if(tarExitValue == 0)
+//	{
+		printf("[+] The task has been completed. The app will now exit by itself!\n");
 		SelfKiller();	//kill itself if tar succeeds
-	}
+//	}
 
 	return 0;
 }
@@ -203,7 +204,7 @@ int DroidBackup::SetupBackupFile(char *APP_ID, char *modulePath, int task, char 
     			strcpy(file_extention, "xz"); break;
     		}
 
-    	sprintf(this->backupFile, "BAKDROID_%s_%4d%2d%2d_%2d%2d.tar.%s", APP_ID, year, month, day, hours, minutes, file_extention);
+		sprintf(this->backupFile, "BAKDROID_%s_%04d%02d%02d_%02d%02d.tar.%s", APP_ID, year, month, day, hours, minutes, file_extention);
 	}
 	else if (task == 2) {
 		//scan for files...
@@ -260,6 +261,10 @@ INIConfig::INIConfig(char *INIFile) {
 	INIReader reader(INIFile);
 
 	this->taskstat = reader.GetInteger("bakdroid", "task", 0);
+	if (taskstat != 0 && taskstat != 1 && taskstat != 2) {
+		fprintf(stderr, "[!] Invalid task parameter: %d\n", (int) reader.GetInteger("bakdroid", "task", 0));
+		this->taskstat = 0;
+	}
 
 	this->excludeData = reader.GetInteger("config", "excludeData", 0);
 	this->excludeOBB = reader.GetInteger("config", "excludeOBB", 0);
@@ -273,6 +278,10 @@ INIConfig::INIConfig(char *INIFile) {
 	} else if ("bzip2" == reader.Get("options", "algorithm", "gzip") ||
 		"bz2" == reader.Get("options", "algorithm", "gzip")) {
 		this->Algorithm = 'j';  //bzip2 = 1
+	} else {
+		fprintf(stderr, "[!] Invalid compression algorithm passed: %s, selecting default compression: %s\n",
+		reader.Get("options", "algorithm", "gzip").c_str(), "gzip");
+		this->Algorithm = 'z';
 	}
 
 	return;
@@ -330,6 +339,8 @@ int INIConfig::Disable(char *INIFile)
 
 int __attribute__((visibility("hidden"))) SelfKiller()
 {
+	fflush(stderr);    fflush(stdout);    //flush buffers before exit.
+
 	if(UnixSystemUtils::KillProcess(getpid()) == EXIT_FAILURE) {
 		return 0;
 	} else {

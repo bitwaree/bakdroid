@@ -146,7 +146,7 @@ void __attribute__((visibility("hidden"))) UnixSystemUtils::GetCurrentDateTime(i
 #include <signal.h>
 int __attribute__((visibility("hidden"))) UnixSystemUtils::KillProcess(int PID) {
     //print a message
-    fprintf(stdout, "[!!!] PID %d will now be killed.\n", PID);
+    //fprintf(stdout, "[!!!] PID %d will now be killed.\n", PID);
 
     // Sleep for a few seconds to allow you to see the message
 
