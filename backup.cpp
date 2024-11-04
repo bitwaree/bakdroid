@@ -107,7 +107,7 @@ int initBackup(char *APP_ID, char *modulePath)
         	config.Algorithm, backupFile,
          	backup.privateDataPath, backup.sharedDataPath, backup.sharedOBBPath, backup.sharedMediaPath);
         //disable to avoid accdental next run
-        //config.Disable(backup.INIConfigFile);
+        config.Disable(backup.INIConfigFile);
 
 	} else if (config.taskstat == 2) {
 		//perform backup restoration
@@ -289,52 +289,34 @@ INIConfig::INIConfig(char *INIFile) {
 
 int INIConfig::Disable(char *INIFile)
 {
-	size_t MAX_INIBUFFER_LEN = 8*1024;
-	char *buffer = (char*) malloc(MAX_INIBUFFER_LEN);  //assume the max length of 8KB
-	memset(buffer, 0, MAX_INIBUFFER_LEN);
-	FILE *inifile = fopen(INIFile, "r");
-	if(!inifile)
-	{
-		free(buffer);
-		return 0;
-	}
-	//read the data
-	size_t bytesRead = fread(buffer, 1, MAX_INIBUFFER_LEN, inifile);
-	fclose(inifile);
+    FILE *file = fopen(INIFile, "r+");
+    if (!file) {
+        perror("Unable to open file");
+        return 1;
+    }
 
-	char *task_pos = strstr(buffer, "task=");
-    if (task_pos != NULL) {
-        // Move the pointer to the first digit after "status="
-        task_pos += strlen("task=");
-        
-        // Check if the next character is a digit
-        if (isdigit(*task_pos)) {
-            // Find the end of the digit sequence
-            char *digit_start = task_pos;
-            while (isdigit(*task_pos)) {
-                task_pos++;
-            }
-            
-            // Replace the digit(s) with '0'
-            // We can replace the first digit and then null-terminate the rest
-            *digit_start = '0';
-            if (task_pos != digit_start + 1) {
-                // If there are more digits, null-terminate the string after the first '0'
-                strcpy(digit_start + 1, task_pos);
+    char line[512];       //buffer to load a line contains
+    long position = -1;
+
+    // Find the line containing "task="
+    while (fgets(line, sizeof(line), file)) {
+        if (strncmp(line, "task=", 5) == 0) {
+            // Check if the line contains "task=1"
+            if (strstr(line, "task=")) {
+                position = ftell(file) - strlen(line); // Save the position to overwrite
+                break;
             }
         }
     }
 
-    //write the modified data back
-    inifile = fopen(INIFile, "w");
-   	if(!inifile)
-	{
-		free(buffer);
-		return 0;
-	}
-	fwrite(buffer, 1, strlen(buffer), inifile);
-	free(buffer);
-	return 0;
+    // If we found the line, overwrite it
+    if (position != -1) {
+        fseek(file, position, SEEK_SET);
+        fprintf(file, "task=0\n"); // Overwrite with "task=0"
+    }
+
+    fclose(file);
+    return 0;
 }
 
 int __attribute__((visibility("hidden"))) SelfKiller()
